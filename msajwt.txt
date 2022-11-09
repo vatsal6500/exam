@@ -1,0 +1,336 @@
+#MSA WITH DATABASE JWT
+
+#SERVER
+##Generate entity from database:
+##Create Session Bean:
+##->SessionBeanLocal.java<-
+package EJB;
+
+import com.mycompany.msaapp2.Entity.Student;
+import java.util.Collection;
+import javax.ejb.Local;
+
+@Local
+public interface StudentSessionLocal {
+    
+   public Collection<Student> getAll();
+    
+}
+##->SessionBean.java<-
+package EJB;
+
+import com.mycompany.msaapp2.Entity.Student;
+import java.util.Collection;
+import javax.ejb.Stateless;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+
+@Stateless
+public class StudentSession implements StudentSessionLocal {
+
+   @PersistenceContext(unitName = "com.mycompany_msaapp2_war_1.0-SNAPSHOTPU")
+   EntityManager em;
+    
+   public Collection<Student> getAll(){
+       return em.createNamedQuery("Student.findAll").getResultList();
+   }
+}
+##->Bootstrap.java<-
+package com.mycompany.msaapp2.config;
+import javax.annotation.security.DeclareRoles;
+import javax.ws.rs.ApplicationPath;
+import org.eclipse.microprofile.auth.LoginConfig;
+
+@LoginConfig(authMethod = "MP-JWT")
+@DeclareRoles({"admin","user"})
+@SuppressWarnings({"EmptyClass", "SuppressionAnnotation"})
+@ApplicationPath("rest")
+public class BootStrap extends javax.ws.rs.core.Application {
+}
+##->ExampleService.java(1)<-
+package com.mycompany.msaapp2.service;
+
+import EJB.StudentSessionLocal;
+import com.mycompany.msaapp2.Entity.Student;
+import java.util.Collection;
+import javax.annotation.security.RolesAllowed;
+import javax.inject.Inject;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+
+@Path("/example")
+public class ExampleService {
+
+   @Inject StudentSessionLocal sbl;
+    
+    
+   @GET
+   public Response get() {
+        return Response.ok("Hello, world!").build();
+    }
+    
+   @GET
+   @RolesAllowed("admin")
+    @Path("/getall")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Collection<Student> getAll(){
+        return sbl.getAll();
+    }
+
+}
+##->ExampleService.java(2)<-
+package com.mycompany.msaapp.service;
+
+import EJB.StudentSessionBeanLocal;
+import com.mycompany.msaapp.Entity.Student;
+import java.util.Collection;
+import javax.annotation.security.RolesAllowed;
+import javax.inject.Inject;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+
+@Path("/example")
+public class ExampleService {
+
+   @Inject StudentSessionBeanLocal ssbl;
+    
+   @GET
+   public Response get() {
+        return Response.ok("Hello, world!").build();
+    }
+    
+   @GET
+    @RolesAllowed("admin")
+    @Path("/getall")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Collection<Student> getAll(){
+        return ssbl.getAll();
+    }
+    
+   @GET
+    @RolesAllowed("user")
+    @Path("/get/{id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Collection<Student> getById(@PathParam("id") int id){
+        return ssbl.getById(id);
+    }
+    
+}
+
+##->microprofile-config.properties<-
+mp.jwt.verify.publickey=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAp0wBw1wD3ByIV7ui/4Q73tj6i+LNb3nG7NDd3GBn2Ihm/gp3qSVOG8G9ITIEDYdayRpfTJKlDDMu9bERRV0DMxlDa64JD0iR5Cs0/D3IxAeN35TuBBrsaeVGSrdfgtaTmj499/QTvLcF4uHOB7Xj/HlLhNaLXLOe3So/9K/pk6OsTpBmM+tbctsjmHJTwHmVNcpyY+P64H/9rwo4gqPRIWGzsLZfaJ0es3+21mPLQG7JKh/Gd9Tv1FCMxKq1IZJEj6NugTm0F0GfpBnFZvYvlwVjIx1Qbb06nP58t1Pzq6hxCyLcwx+RdDhuBb/Kw3F0YDLDmej5yCjv/cdEZmm1twIDAQAB
+mp.jwt.verify.issuer=airhacks
+##->persistance.xml(source)<-
+<?xml version="1.0" encoding="UTF-8"?>
+<persistence version="2.1" xmlns="http://xmlns.jcp.org/xml/ns/persistence" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/persistence http://xmlns.jcp.org/xml/ns/persistence/persistence_2_1.xsd">
+  <persistence-unit name="com.mycompany_msaapp2_war_1.0-SNAPSHOTPU" transaction-type="JTA">
+    <jta-data-source>studentjndi</jta-data-source>
+    <exclude-unlisted-classes>false</exclude-unlisted-classes>
+    <properties/>
+  </persistence-unit>
+</persistence>
+
+
+#CLIENT
+##copy entity package from server and past it to client source packages
+#->Create Java Interface<-
+package Client;
+
+import com.mycompany.msaapp2.Entity.Student;
+import java.util.Collection;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.ConfigProvider;
+import org.eclipse.microprofile.rest.client.annotation.ClientHeaderParam;
+import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
+
+@RegisterRestClient(baseUri = "http://localhost:8085/msaapp2/rest/example")
+public interface StudentClient {
+    
+  @GET
+  @ClientHeaderParam(name = "authorization", value = "{generateJWTtoken}")
+  @Path("/getall")
+  @Produces(MediaType.APPLICATION_JSON)
+  public Collection<Student> getAll();
+    
+  default String generateJWTtoken() {
+      Config config = ConfigProvider.getConfig();
+      String token = "Bearer " + config.getValue("jwt-string", String.class);
+      System.out.println("Token " + token);
+      return token;
+  }
+    
+}
+##Create Servlet
+#->Servlet1<-
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Servlet.java to edit this template
+ */
+package Servlet;
+
+import Client.StudentClient;
+import com.mycompany.msaapp.Entity.Student;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Collection;
+import javax.inject.Inject;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
+
+@WebServlet(name = "StudentAll", urlPatterns = {"/StudentAll"})
+public class StudentAll extends HttpServlet {
+
+   @Inject @RestClient StudentClient sc;
+    
+   protected void processRequest(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        response.setContentType("text/html;charset=UTF-8");
+        try ( PrintWriter out = response.getWriter()) {
+            /* TODO output your page here. You may use following sample code. */
+            out.println("<!DOCTYPE html>");
+            out.println("<html>");
+            out.println("<head>");
+            out.println("<title>Servlet StudentAll</title>");            
+            out.println("</head>");
+            out.println("<body>");
+            
+   Collection<Student> students = sc.getAll();
+            out.println("<table border='1'>"
+                        + "<tr>"
+                        + "<th>Name</th>"
+                        + "<th>Age</th>"
+                        + "<th>Action</th>"
+                        + "</tr>");
+            for (Student student : students) {
+                out.println("<tr>"
+                        + "<td>"+student.getName()+"</td>"
+                        + "<td>"+student.getAge()+"</td>"
+                                + "<td><a href='StudentId?id="+student.getId()+"'>detail</a></td>"
+                        + "</tr>");
+                
+                       
+   }
+            out.println("</table>");
+            out.println("</body>");
+            out.println("</html>");
+        }
+    }
+
+   @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        processRequest(request, response);
+    }
+
+   @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        processRequest(request, response);
+    }
+
+   @Override
+    public String getServletInfo() {
+        return "Short description";
+    }// </editor-fold>
+
+}
+
+#->Servlet2<-
+public class StudentId extends HttpServlet {
+
+   @Inject @RestClient StudentClient sc;
+    
+   protected void processRequest(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        response.setContentType("text/html;charset=UTF-8");
+        try ( PrintWriter out = response.getWriter()) {
+            
+   int id = Integer.parseInt(request.getParameter("id"));
+            
+   
+   out.println("<!DOCTYPE html>");
+            out.println("<html>");
+            out.println("<head>");
+            out.println("<title>Servlet StudentId</title>");            
+            out.println("</head>");
+            out.println("<body>");
+            Collection<Student> students = sc.getById(id);
+            out.println("<table border='1'>"
+                        + "<tr>"
+                        + "<th>Name</th>"
+                        + "<th>Age</th>"
+                        + "</tr>");
+            for (Student student : students) {
+                out.println("<tr>"
+                        + "<td>"+student.getName()+"</td>"
+                        + "<td>"+student.getAge()+"</td>"
+                        + "</tr>");
+                
+                       
+   }
+            out.println("</body>");
+            out.println("</html>");
+        }
+    }
+##->microprofile-config.properties<-
+jwt-string=eyJraWQiOiJqd3Qua2V5IiwidHlwIjoiSldUIiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiJkdWtlIiwidXBuIjoiZHVrZSIsImF1dGhfdGltZSI6MTY2MzQ4ODc3MiwiaXNzIjoiYWlyaGFja3MiLCJncm91cHMiOlsiYWRtaW4iLCJ1c2VyIl0sImV4cCI6MTY2MzU4ODc3MiwiaWF0IjoxNjYzNDg4NzcyLCJqdGkiOiI0MiJ9.bYj_2iKYKBsm2b_9rGg-33sEcs00lqHFsteAVgj3wBAu8SHfJEplwE1Zy_yhf_1X6S3QeMVuttRuGq1ZCNzp0kbfPzVQ5fhkbLTGQpFDWEa5DnpEq5BTw8ZkZ4YXpL1lmTC8IsD-Rx87HhSIwaKohM9Wh3ayUVopZQyw9H9HN8JUb8QE0nWV_03-KIapUEUrj5CRpk9_8jaB1JtS6Vtn6ZNuRNRuayEFr7wnYdkMeNQEHqUku2oXu4chYAlt3It9hUtNB4XTCriEg-njR6n_FXqqolRJF4HQUMEQLKJvEUTJwqHC_68lEVfZ0z4eXvWHpvrDOl6Nq-vCLYaH-G-UQw
+
+
+##->Run with Payara micro<-
+- ##requires
+	- ==payamicro jar==
+		- ==extract domain.xml==
+	- ==mysqlconnector jar==
+
+##->domain.xml(changes only)<-
+- ==after line no 60==
+<jdbc-connection-pool datasource-classname="com.mysql.jdbc.jdbc2.optional.MysqlDataSource" name="studentpool" res-type="javax.sql.DataSource" steady-pool-size="1" is-connection-validation-required="true" connection-validation-method="meta-data" max-pool-size="10">
+<property name="password" value="8141"/>
+<property name="user" value="root"/>
+<property name="databaseName" value="demo"/>
+<property name="serverName" value="localhost"/>
+<property name="portNumber" value="3306"/>
+<property name="UseSSL" value="false"/>
+<property name="zeroDateTimeBehavior" value="convertToNull"/>
+</jdbc-connection-pool>
+<jdbc-resource pool-name="studentpool" jndi-name="studentjndi"/>
+
+- ==in server tag==
+<resource-ref ref="studentjndi"/>	
+
+##Commands to run in terminal with payara micro
+
+- don't forget to change ==baseurl== from ==interface of client app== & some times it requires to clean and build and then run to complete the process
+
+- >>for server
+java -jar payara-micro-5.2022.3.jar --deploy msaapp2/artifact/msaapp2.war --port 8085 --addlibs mysql-connector-java-5.0.8-bin.jar --domainconfig domain.xml
+
+- >>for client
+java -jar payara-micro-5.2022.3.jar --deploy msaclient2/artifact/msaclient2.war --port 8086
+
+- ==Note==
+	- change the above command like file location and name etc as per requriments
+
+
+
+
+
+
+
+->![Image description](https://i.imgur.com/PYV4crq.png)<-
+##->`AKAKATIL`<-

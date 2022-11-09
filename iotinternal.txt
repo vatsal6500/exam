@@ -1,0 +1,59 @@
+internal iot program
+
+import sqlite3
+import paho.mqtt.client as mqtt
+
+broker_url="broker.emqx.io"
+broker_port=1883
+client=mqtt.Client()
+client.connect(broker_url,broker_port)
+
+connection = sqlite3.connect("manual42.db")
+crsr = connection.cursor()
+
+sql_command = """ CREATE TABLE IF NOT EXISTS test(id INTEGER PRIMARY KEY AUTOINCREMENT,name VARCHAR(50),age INTEGER,gender VARCHAR(50)) """
+crsr.execute(sql_command)
+print("table created...")
+
+for i in range(0):
+    print("Enter Name : ")
+    name=input()
+    print("Enter Age : ")
+    age=input()
+    print("Enter Gender : ")
+    gender = input()
+    print(name)
+    crsr.execute("INSERT INTO test(name,age,gender) values(?,?,?)",(name,age,gender))
+    connection.commit()
+    
+crsr.execute("select * from test")
+allrecord=crsr.fetchall()
+print(allrecord)
+    
+crsr.execute("select name from test")
+ans=crsr.fetchall()
+i=ans
+
+for i in range (len(ans)):
+    print(ans[i])
+    client.publish(topic="VIRTUAL_A",payload="name: " + str(ans[i]),qos=0,retain=False)
+    print("msg published...")
+
+
+nodejs subscriber
+
+var mqtt = require("mqtt");
+var client = mqtt.connect("mqtt://broker.emqx.io:1883");
+
+var TOPIC = "VIRTUAL_A"
+console.log("dhruvil subscriber is called")
+//Subscribe Topic
+client.on("connect",()=>{
+    client.subscribe(TOPIC);
+});
+console.log("dhruvil subscriber is still called")
+//output on the console
+client.on("message",(topic,message)=>{
+    message = message.toString();
+    console.log(`Message sent : ${message}`);
+});

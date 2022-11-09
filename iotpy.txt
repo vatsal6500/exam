@@ -1,0 +1,180 @@
+##->`Python programs`<-
+
+#->DATABASE INSERT DISPLAY<-
+import sqlite3
+con=sqlite3.connect("demo.db")
+crsr=con.cursor()
+cmd="""CREATE TABLE IF NOT EXISTS EmpTB
+(empID INTEGER PRIMARY KEY
+,fname VARCHAR(20)
+,lname VARCHAR(20)
+,gender CHAR(1)
+,joining DATE);
+"""
+print("table created")
+
+crsr.execute(cmd)
+
+for i in range(3):
+	print("Insert ID")
+	x=int(input())
+	print("Enter Name")
+	name1=input()
+	print("Enter Laste Name")
+	name2=input()
+	print("Enter Gender M/F")
+	name3=input()
+	name4="2000-10-20"
+	crsr.execute("insert into EmpTB (empID,fname,lname,gender,joining)values(?,?,?,?,?)",(x,name1,name2,name3,name4))
+	
+crsr.execute(cmd)
+con.commit()
+
+crsr=con.cursor()
+crsr.execute("SELECT * FROM EmpTB")
+ans=crsr.fetchall()
+print("ID\tfname\tlname\tgender\tjoindate")
+for a in  ans:
+	print(str(a[0]) +'\t'+ a[1] + '\t'+ a[2] + '\t'+ a[3] + '\t'+ a[4])
+
+#->db to csv<-
+import sqlite3
+import csv
+con=sqlite3.connect("demo.db")
+crsr=con.cursor()
+crsr.execute("SELECT * FROM EmpTB")
+ans=crsr.fetchall()
+print(ans)
+with open('Employee.csv','a',encoding='UTF-8') as f:
+    writer =csv.writer(f)
+    for i in range(0,len(ans)):
+        writer.writerow(ans[i])
+f.close()
+
+#->INSERT File<-
+f = open("emp.txt","w")
+x="y"
+while (x=="y"):
+	name=input("Enter Name")
+	f.write(name)
+	f.write("\n")
+	x=input("do u want to cont?(y/n)")
+
+#->MQTT WITH DB INSERT<-
+import paho.mqtt.client as mqtt
+import sqlite3
+
+def on_message(client,userdata,msg):
+    con=sqlite3.connect("demo.db")
+    crsr=con.cursor()
+    cmd="""CREATE TABLE IF NOT EXISTS TestMQDT(msg VARCHAR(20));"""
+    crsr.execute(cmd)
+    print("Publish Msg")
+    print(msg.topic+" "+str(msg.payload))
+    name=str(msg.payload)
+    print(name)
+    crsr.execute("insert into TestMQDT (msg) values(?)",(name,))
+    crsr.execute(cmd)
+    con.commit()
+    crsr=con.cursor()
+    crsr.execute("SELECT * FROM TestMQDT")
+    ans=crsr.fetchall()
+    print("DB Data")
+    for a in  ans:
+        print(str(a[0])+"\n")
+    -#return false
+	-#client.publish(topic="Kakashi",payload="Copy Ninja",qos=1,retain=False)
+
+broken_url="broker.emqx.io"
+broker_port = 1883
+client =mqtt.Client()
+client.on_message=on_message
+client.connect(broken_url,broker_port)
+client.subscribe("Kakashi",qos=0)
+-#client.publish(topic="Kakashi",payload="hello _ 40 ",qos=0,retain=False)
+client.loop_forever()
+-#client.publish(topic="abc",payload="Heloo ",qos=0,retain=False)
+
+#->FIREBASE<-
+import pyrebase
+config={
+  "apiKey": "AIzaSyD5BCedrm0EVK3haw32A2BhmBPjNZzo2Ao",
+  "authDomain": "test-project-686a9.firebaseapp.com",
+  "databaseURL": "https://test-project-686a9-default-rtdb.asia-southeast1.firebasedatabase.app",
+  "projectId": "test-project-686a9",
+  "storageBucket": "test-project-686a9.appspot.com",
+  "messagingSenderId": "1059246777820",
+  "appId": "1:1059246777820:web:c234be87f95bb0a326db19"
+};
+firebase = pyrebase.initialize_app(config);
+storage =firebase.storage()
+database =firebase.database()
+a=6
+b=10
+database.child("DemoTB")
+data={"KeyA":a,"KeyB":b}
+
+
+database.child("DemoTB1")
+data1={"KeyA":a,"KeyB":b}
+
+database.set(data1)
+
+#->JSON to DB<-
+import paho.mqtt.client as mqtt
+import sqlite3
+import json
+
+def on_message(client,userdata,msg):
+    con=sqlite3.connect("demo.db")
+
+   crsr=con.cursor()
+    cmd="""CREATE TABLE IF NOT EXISTS DemoMQTT(ID integer primary key autoincrement,name VARCHAR(50),age Decimal);"""
+    crsr.execute(cmd)
+    print("Publish Msg")
+-#     print(msg.topic+" "+str(msg.payload))
+    pdata=str(msg.payload.decode("utf-8","ignore"))
+    print(pdata)
+    res = []
+    x,y,z=pdata.split(',')
+    name=x.split(":")
+    age=y.split(":")
+    vi=z.split(":")
+    print(name)
+    print("Val")
+    print(name[1:2])
+    print(age[1:2])
+    print(vi[1:2])
+    v=age[1:2]
+    p=name[1:2]
+    j1="".join(p)
+    j2="".join(v)
+    print(j1)
+   
+   
+   crsr.execute("insert into DemoMQTT (name,age) values(?,?)",(str(j1),float(j2)))
+    crsr.execute(cmd)
+    con.commit()
+    crsr=con.cursor()
+    crsr.execute("SELECT * FROM DemoMQTT")
+    ans=crsr.fetchall()
+    print("DB Data")
+    print(ans)
+    for a in  ans:
+        print(str(a[0])+"\n")
+#     return false
+# client.publish(topic="Kakashi",payload="Copy Ninja",qos=1,retain=False)
+
+broken_url="broker.emqx.io"
+broker_port = 1883
+client =mqtt.Client()
+client.on_message=on_message
+client.connect(broken_url,broker_port)
+client.subscribe("Kakashi",qos=0)
+-#client.publish(topic="Kakashi",payload="hello _ 40 ",qos=0,retain=False)
+client.loop_forever()
+-#client.publish(topic="abc",payload="Heloo ",qos=0,retain=False)
+
+
+##->![Image description](https://i.imgur.com/PYV4crq.png)<-
+##->`AKAKATIL`<-

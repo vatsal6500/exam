@@ -1,0 +1,78 @@
+/install following command/
+
+npm init -y
+
+npm install mqtt mosca
+
+/Replace the following condition in node_modules/jsonschema/lib/validator.js  at line no 109/
+if((typeof schema == 'boolean' && typeof schema == 'object') || schema === null){
+    throw new SchemaError('Expected `schema` to be an object or boolean');
+}
+
+/Create broker.js/
+
+//============================broker.js==================================
+
+//MQTT Broker
+//Help us to create mqtt
+var mosca = require("mosca");
+
+var settings = {port:1234};
+
+var broker = new mosca.Server(settings);
+
+broker.on("ready",()=>{
+    console.log("Broker is ready....");
+});
+
+==========================================================================
+
+//============================publisher.js=================================
+
+var mqtt = require("mqtt");
+var client = mqtt.connect("mqtt://localhost:1234");
+
+const TOPIC = "MY_TOPIC"
+
+const message = "Hello there I am sending the message";
+
+client.on("connect",()=>{
+    setInterval(()=>{
+        client.publish(TOPIC,message);
+        console.log(`Message Received ${message}`)
+    },3000);
+});
+
+==========================================================================
+
+//============================subscriber.js================================
+
+var mqtt = require("mqtt");
+var client = mqtt.connect("mqtt://localhost:1234");
+
+var TOPIC = "MY_TOPIC"
+
+//client connect with broker then it will subscribe
+client.on("connect",()=>{
+    client.subscribe(TOPIC);
+});
+
+//Sending the message
+client.on("message",(topic,message)=>{
+    message = message.toString();
+    console.log(`Message sent : ${message}`);
+});
+
+==========================================================================
+
+//Run the files in different terminal
+
+node broker.js
+node publisher.js
+node subscriber.js
+
+
+
+
+##->![Image description](https://i.imgur.com/PYV4crq.png)<-
+##->`AKAKATIL`<-

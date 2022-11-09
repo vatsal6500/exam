@@ -1,0 +1,180 @@
+KNN
+import numpy as np
+import pandas as pd
+
+df=pd.read_csv('iris.csv')
+df.head()
+
+x=df[["SepalLengthCm", "SepalWidthCm", "PetalLengthCm", "PetalWidthCm" ]]
+y=df['Species']
+x.head()
+
+from sklearn.preprocessing import LabelEncoder
+le=LabelEncoder()
+y=le.fit_transform(y)
+y
+
+from sklearn.model_selection import train_test_split
+xtrain, xtest, ytrain, ytest=train_test_split(x,y, test_size=0.2, random_state=42)
+xtest
+
+from sklearn.neighbors import KNeighborsClassifier
+model=KNeighborsClassifier(n_neighbors=3, metric="euclidean")
+model.fit(xtrain, ytrain)
+
+ypred=model.predict(xtest)
+ypred
+
+from sklearn.metrics import confusion_matrix
+cm=confusion_matrix(ypred, ytest)
+cm
+
+from sklearn.metrics import accuracy_score
+asc=accuracy_score(ypred, ytest)*100
+asc
+
+Bayseian
+import numpy as np
+import pandas as pd
+
+df=pd.read_csv('Air_Traffic.csv')
+df.head()
+
+x=df[["Days","Season","Fog","Rain"]]
+y=df["Season"].value_counts()
+y
+
+from sklearn.preprocessing import LabelEncoder
+le=LabelEncoder()
+ds=df.apply(le.fit_transform)
+ds.tail()
+
+x=ds[["Days","Season","Fog","Rain"]]
+y=ds["Season"]
+y
+
+from sklearn.model_selection import train_test_split
+x_train, x_test, y_train, y_test=train_test_split(x, y, test_size=0.2, random_state=42)
+y_test
+
+from sklearn.naive_bayes import GaussianNB
+model=GaussianNB()
+
+model.fit(x_train,y_train)
+y_pred=model.predict(x_test)
+y_pred
+
+from sklearn.metrics import confusion_matrix
+cm=confusion_matrix(y_pred, y_test)
+cm
+
+from sklearn.metrics import accuracy_score
+acs=accuracy_score(y_pred, y_test)*100
+acs
+
+Linear Regeration
+import pandas as pd
+import numpy as np
+
+df=pd.read_csv('Salary_Data.csv')
+df.head()
+
+y=df['Salary'].values
+x=df['YearsExperience'].values
+
+y=y.reshape(len(y),1)
+y.shape
+
+x=x.reshape(len(x),1)
+x.shape
+
+from sklearn.model_selection import train_test_split
+xtrain,xtest, ytrain, ytest=train_test_split(x,y, test_size=0.2 )
+
+from sklearn.linear_model import LinearRegression
+lin_reg=LinearRegression()
+
+lin_reg.fit(xtrain, ytrain)
+
+ypred=lin_reg.predict(xtest)
+ypred
+
+Regression line for Training samples
+import matplotlib.pyplot as plt
+plt.scatter(xtrain,ytrain, color='red', label='Actual Data')
+plt.scatter(xtrain, lin_reg.predict(xtrain), color='blue', label='Predicted Data')
+plt.plot(xtrain,lin_reg.predict(xtrain), '--', color='green', label='Line of Regression')
+plt.legend(loc='best')
+plt.show()
+
+Regression line for Testing samples
+import matplotlib.pyplot as plt
+plt.scatter(xtest,ytest, color='red', label='Actual Data')
+plt.scatter(xtest, ypred, color='blue', label='Predicted Data')
+plt.plot(xtest,ypred, '--', color='green', label='Line of Regression')
+plt.legend(loc='best')
+plt.show()
+
+m=lin_reg.coef_
+print(m)
+
+b=lin_reg.intercept_
+print(b)
+
+new_y=m*15+b
+print(new_y)
+
+from sklearn.metrics import r2_score
+r2=r2_score(ytest,ypred)
+r2
+
+K-Means
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+df=pd.read_csv("Mall_Customers.csv")
+df.head()
+
+X=df.iloc[:, [3,4]].values
+X
+
+plt.scatter(X[:,0],X[:,1], color='black', label='data points')
+plt.xlabel('Income')
+plt.ylabel('Spending')
+plt.legend()
+plt.show()
+
+from sklearn.cluster import KMeans
+wcss=[]
+for i in range(1,11):
+km=KMeans(n_clusters=i)
+km.fit(X)
+wcss.append(km.inertia_)
+
+print (wcss)
+
+plt.figure(figsize=(12,6))
+plt.plot(range(1,11), wcss)
+plt.plot(range(1,11),wcss, linewidth=2, color='red', marker='8')
+plt.xlabel('K values')
+plt.xticks(np.arange(1,11))
+plt.ylabel('wcss values')
+plt.show()
+
+df1=df[["Annual Income (k$)", "Spending Score (1-100)"]]
+X=df1
+X.head()
+
+km1=KMeans(n_clusters=5)
+km1.fit(X)
+y=km1.predict(X)
+df1["label"]=y
+df1
+
+import seaborn as sns
+plt.figure(figsize=(12,6))
+sns.scatterplot(x='Annual Income (k$)', y='Spending Score (1-100)',hue="label",palette=['green','orange','brown','dodgerblue','red'], data=X, s=50)
+plt.xlabel('Annual Income')
+plt.ylabel('Spending score')
+plt.show()

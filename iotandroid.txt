@@ -1,0 +1,124 @@
+##->`ANDROID`<-
+
+##->==Gradel dependencies==<-
+implementation fileTree(dir: 'libs', include: ['*.jar'])
+
+   implementation 'androidx.appcompat:appcompat:1.1.0'
+    implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
+    testImplementation 'junit:junit:4.12'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.1'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
+    implementation 'org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.1'
+    implementation 'org.eclipse.paho:org.eclipse.paho.android.service:1.1.1'
+    implementation 'androidx.localbroadcastmanager:localbroadcastmanager:1.0.0'
+
+##->==on create methos upper==<-
+EditText editText1;
+    Button button1;
+    TextView textview1;
+    String serverUri = "mqtt://broker.emqx.io:1883";
+    //String serverUri="mqtt://test.mosca.io:80";
+    String subscriptionTopic = "testing1";
+    String publishTopic = "testing2";
+    MqttAndroidClient client;
+
+##->==on create methos ma==<-
+editText1 = (EditText) findViewById(R.id.editText1);
+        button1 = (Button) findViewById(R.id.button1);
+        textview1 = (TextView) findViewById(R.id.textView1);
+
+   String clientid = MqttClient.generateClientId();
+        client = new MqttAndroidClient(getApplicationContext(), serverUri, clientid);
+        client.setCallback(new MqttCallback() {
+            @Override
+            public void connectionLost(Throwable cause) {
+                Log.v("connmsg", "Connection Lost !!");
+            }
+
+   @Override
+            public void messageArrived(String topic, MqttMessage message) throws Exception {
+                textview1.setText(message.toString());
+                Log.v("msgarrival", "Topic: " + topic + ", Message: " + new String(message.getPayload()));
+            }
+
+   @Override
+            public void deliveryComplete(IMqttDeliveryToken token) {
+                Log.v("msgdelivered", "Message Delivered !!");
+            }
+        });
+
+  try {
+            client.connect().setActionCallback(new IMqttActionListener() {
+                @Override
+                public void onSuccess(IMqttToken asyncActionToken) {
+                    Log.v("Status", "Connection Successful !!");
+                    subscribeTopic(subscriptionTopic);
+                }
+      @Override
+                public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
+
+   }
+        });
+     } catch (MqttException e) {
+            e.printStackTrace();
+        }
+
+button1.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                publishMessage(editText1.getText().toString());
+                editText1.setText("");
+                Toast.makeText(MainActivity.this, "Message Sent !!", Toast.LENGTH_LONG).show();
+            }
+        });
+
+
+##->==Create method ne niche==<-
+public void publishMessage(String payload) {
+        try {
+            if (client.isConnected() == false) {
+                client.connect();
+            }
+
+   MqttMessage message = new MqttMessage();
+            message.setPayload(payload.getBytes());
+            message.setQos(0);
+            client.publish(publishTopic, message, null, new IMqttActionListener() {
+                @Override
+                public void onSuccess(IMqttToken asyncActionToken) {
+                    Log.v("psmessage", "Published Successfully !!");
+                }
+
+   @Override
+                public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
+                    Log.v("pfmessage", "Publish Failed !!");
+                }
+            });
+        } catch (MqttException e) {
+            Log.e("Stack", e.toString());
+            e.printStackTrace();
+        }
+    }
+
+   public void subscribeTopic(String topic) {
+        try {
+            client.subscribe(topic, 0, null, new IMqttActionListener() {
+                @Override
+                public void onSuccess(IMqttToken asyncActionToken) {
+                    Log.v("ssmessage", "Subscribed Successfully !!");
+                }
+
+   @Override
+                public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
+                    Log.v("sfmessage", "Subscribe Failed !!");
+                }
+            });
+
+   } catch (MqttException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+##->![Image description](https://i.imgur.com/PYV4crq.png)<-
+##->`AKAKATIL`<-
