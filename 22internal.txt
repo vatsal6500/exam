@@ -1,0 +1,114 @@
+create table 
+===========
+
+import sqlite3
+
+connection = sqlite3.connect("manualrollno__.db")
+
+cur = connection.cursor()
+
+sql_command = """CREATE TABLE IF NOT EXISTS person(sequence_no INTEGER PRIMARY KEY
+AUTOINCREMENT,
+name text,
+age INTEGER,
+gender text)""" ;
+
+cur.execute(sql_command);
+print("Table created...")
+
+connection.commit()
+connection.close()
+
+
+insert table 
+===================
+
+import sqlite3
+connection = sqlite3.connect("manualrollno__.db")
+
+cur = connection.cursor()
+
+total = int(input("Total inputs: "))
+
+insert_sql = "insert into person(name,age,gender) values(?,?,?)"
+
+for i in range(total):
+    name = input("Name : ")
+    age = input("Age: ")
+    gender = input("Gender: ")
+    cur.execute(insert_sql,(name,age,gender))
+
+
+connection.commit();
+connection.close();
+
+publisher.py
+======================
+
+import sqlite3
+import json
+import paho.mqtt.client as mqtt
+
+connection = sqlite3.connect("manualrollno__.db")
+
+cur = connection.cursor()
+
+broker_url = "broker.emqx.io"
+broker_port = 1883
+
+client = mqtt.Client()
+client.connect(broker_url,broker_port)
+
+cur.execute("SELECT *FROM person")
+data = cur.fetchall()
+
+#jsonDict = dict({"name":"Dhawal"})
+
+for row in data:
+    dict_object = {"sequence_no":str(row[0]),"name":str(row[1]),"age":str(row[2]),"gender":str(row[3])}
+    print(json.dumps(dict_object))
+    client.publish(topic="Virtual_A",payload=json.dumps(dict_object),qos=0,retain=False)
+ 
+connection.commit()
+connection.close()
+
+subscriber.py
+=======================
+
+import paho.mqtt.client as mqtt
+import json
+
+broker_url = "broker.emqx.io"
+broker_port = 1883
+
+client = mqtt.Client()
+
+client.connect(broker_url,broker_port)
+
+def on_message(client,userdata,msg):
+    jsonString = msg.payload.decode("utf-8")
+    jsonData = json.loads(jsonString)
+    print("{}-{}-{}-{}".format(jsonData["sequence_no"],jsonData["name"],jsonData["age"],jsonData["gender"]))
+
+client.on_message = on_message
+client.subscribe("Virtual_A",qos=0)
+client.loop_forever()
+
+
+subsciber.js (node)
+=====================
+var mqtt = require("mqtt");
+var client = mqtt.connect("mqtt://broker.emqx.io");
+
+var TOPIC = "Virtual_A";
+
+//client connect with broker then it will subscribe
+client.on("connect", () => {
+  client.subscribe(TOPIC);
+});
+
+//Sending the message
+client.on("message", (topic, message) => {
+  message = message.toString();
+  console.log(`Message sent : ${message}`);
+});
